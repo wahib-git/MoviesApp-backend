@@ -76,7 +76,7 @@ cd tekflix_server
 ## Configuration
 
 Dans `application.properties`, configurez notamment :
-spring.datasource.url=jdbc:mariadb://localhost:3306/tekflix?useSSL=false&serverTimezone=UTC
+spring.datasource.url=jdbc:mysql://localhost:3306/your_database?useSSL=false&serverTimezone=UTC
 spring.datasource.username=root
 spring.datasource.password=your_password
 spring.jpa.database-platform=org.hibernate.dialect.MariaDB103Dialect
@@ -85,7 +85,7 @@ spring.servlet.multipart.enabled=true
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
-file.upload-dir=C:\Users\Mss\IdealProjects\tekflix_server\uploads\
+file.upload-dir=specifier le shemins vres le repertoire destiné pour l'importation des images (`file.upload-dir`)
 
 spring.datasource.hikari.maximum-pool-size=10
 spring.datasource.hikari.minimum-idle=2
@@ -94,7 +94,7 @@ spring.datasource.hikari.minimum-idle=2
 
 ## Utilisation
 
-- L’API est accessible par défaut sur `http://localhost:8080/api/v0/movies`  
+- L’API est accessible par défaut sur `http://localhost:8081/api/v0/movies`  
 - Les images uploadées sont stockées dans le dossier configuré (`file.upload-dir`)  
 - Les URLs des images sont générées automatiquement dans les réponses JSON  
 
