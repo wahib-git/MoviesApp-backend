@@ -2,7 +2,9 @@ package com.angular.tekflix_server.services;
 
 
 import com.angular.tekflix_server.models.Movie;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,4 +19,6 @@ public interface IMovieService {
     public Movie updateMovie(Movie movie);
 
     public void deleteMovie(Long id);
+
+    public String saveFile(MultipartFile image) throws IOException;
 }

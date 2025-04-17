@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
+
 
 @RestController
 @CrossOrigin(origins = "http://localhost:4200") // Autorise les requêtes provenant de localhost:4200
@@ -19,14 +21,13 @@ import java.util.List;
 public class MovieController {
 
     private final IMovieService movieService;
+    @Value("${file.upload-dir}")
+    public String uploadDir;
 
 
     public MovieController(IMovieService movieService) {
         this.movieService = movieService;
     }
-
-    @Value("${file.upload-dir}")
-    private String UPLOAD_DIR;
     /**
      * Récupère tous les films avec leurs URLs d'image complètes.
      */
@@ -47,7 +48,6 @@ public class MovieController {
 
         return movies;
     }
-
     /**
      * Crée un nouveau film avec l'image uploadée.
      */
@@ -60,10 +60,13 @@ public class MovieController {
             @RequestParam("year") String year,
             @RequestParam("isNew") boolean isNew,
             @RequestParam("trailerUrl") String trailerUrl,
-            @RequestParam("image") MultipartFile image) {
+            @RequestParam(value = "image", required = false) MultipartFile image) throws IOException {
 
-        // Sauvegarder l'image dans le répertoire d'upload
-        String imagePath = saveImage(image);
+        // Save the file if provided
+        String imagePath = null;
+        if (image != null && !image.isEmpty()) {
+            imagePath = movieService.saveFile(image);
+        }
 
         // Créer un objet Movie
         Movie movie = new Movie();
@@ -74,7 +77,7 @@ public class MovieController {
         movie.setYear(year);
         movie.setNew(isNew);
         movie.setTrailerUrl(trailerUrl);
-        movie.setImage(imagePath); // Enregistrer le chemin ou le nom de fichier
+        movie.setImage(imagePath); // Enregistrer le nom de fichier
 
         return movieService.createMovie(movie);
     }
@@ -88,7 +91,7 @@ public class MovieController {
                 .orElseThrow(() -> new RuntimeException("Film non trouvé"));
 
         // Supprimer l'image associée au film
-        Path filePath = Paths.get(UPLOAD_DIR + movie.getImage());
+        Path filePath = Paths.get(uploadDir + movie.getImage());
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
@@ -99,32 +102,61 @@ public class MovieController {
         movieService.deleteMovie(id);
     }
 
-    /**
-     * Sauvegarde une image dans le répertoire d'upload.
-     */
-    private String saveImage(MultipartFile image) {
-        try {
-            String fileName = image.getOriginalFilename();
-            Path filePath = Paths.get(UPLOAD_DIR + fileName);
 
-            // Créer les répertoires si nécessaire et sauvegarder le fichier
-            Files.createDirectories(filePath.getParent());
-            Files.write(filePath, image.getBytes());
+    @GetMapping("/{id}")
+    public Optional<Movie> getMovieById(@PathVariable Long id) {
+        return movieService.getMovieById(id);
+    }
 
-            return fileName; // Retourner le nom du fichier sauvegardé
-        } catch (IOException e) {
-            throw new RuntimeException("Erreur lors de la sauvegarde de l'image", e);
+    @PutMapping("/{id}")
+    public Movie updateMovie(
+            @PathVariable Long id,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("genre") String genre,
+            @RequestParam("rating") String rating,
+            @RequestParam("year") String year,
+            @RequestParam("isNew") boolean isNew,
+            @RequestParam("trailerUrl") String trailerUrl,
+            @RequestParam(value = "image", required = false) MultipartFile image) throws IOException {
+
+        Movie existingMovie = movieService.getMovieById(id)
+                .orElseThrow(() -> new RuntimeException("Film non trouvé avec l'id : " + id));
+
+        // Mise à jour des champs texte
+        existingMovie.setTitle(title);
+        existingMovie.setDescription(description);
+        existingMovie.setGenre(genre);
+        existingMovie.setRating(rating);
+        existingMovie.setYear(year);
+        existingMovie.setNew(isNew);
+        existingMovie.setTrailerUrl(trailerUrl);
+
+        // Gestion de l'image (optionnelle)
+        if (image != null && !image.isEmpty()) {
+            // Supprimer l'ancienne image si elle existe
+            String oldImageName = existingMovie.getImage();
+            if (oldImageName != null) {
+                Path oldImagePath = Paths.get(uploadDir + oldImageName);
+                try {
+                    Files.deleteIfExists(oldImagePath);
+                } catch (IOException e) {
+                    throw new RuntimeException("Erreur lors de la suppression de l'ancienne image", e);
+                }
+            }
+
+            // Sauvegarder la nouvelle image
+            String newImageName = movieService.saveFile(image);
+            existingMovie.setImage(newImageName);
         }
+
+        // Sauvegarder les modifications
+        return movieService.createMovie(existingMovie); // ou updateMovie selon votre service
     }
 
 //    @GetMapping
 //    public List<Movie> getAllMovies() {
 //        return movieService.getAllMovies();
-//    }
-//
-//    @GetMapping("/{id}")
-//    public Optional<Movie> getMovieById(Long id) {
-//        return movieService.getMovieById(id);
 //    }
 //
 //    @PostMapping
