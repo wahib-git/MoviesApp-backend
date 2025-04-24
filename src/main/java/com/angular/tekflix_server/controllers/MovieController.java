@@ -12,7 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
+
 
 
 @RestController
@@ -34,20 +34,29 @@ public class MovieController {
     @GetMapping
     public List<Movie> getAllMovies() {
         List<Movie> movies = movieService.getAllMovies();
-
-        // Ajouter l'URL complète pour chaque image
-        movies.forEach(movie -> {
-            if (movie.getImage() != null) {
-                String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/uploads/")
-                        .path(movie.getImage())
-                        .toUriString();
-                movie.setImage(imageUrl);
-            }
-        });
-
+        movies.forEach(this::generateImageUrl); // Applique generateImageUrl à chaque film
         return movies;
     }
+
+    @GetMapping("/{id}")
+    public Movie getMovieById(@PathVariable Long id) {
+        Movie movie = movieService.getMovieById(id)
+                .orElseThrow(() -> new RuntimeException("Film non trouvé"));
+        generateImageUrl(movie); // Applique generateImageUrl au film récupéré
+        return movie;
+    }
+
+    // Méthode helper pour générer l'URL de l'image
+    private void generateImageUrl(Movie movie) {
+        if (movie.getImage() != null) {
+            String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/")
+                    .path(movie.getImage())
+                    .toUriString();
+            movie.setImage(imageUrl);
+        }
+    }
+
     /**
      * Crée un nouveau film avec l'image uploadée.
      */
@@ -102,11 +111,6 @@ public class MovieController {
         movieService.deleteMovie(id);
     }
 
-
-    @GetMapping("/{id}")
-    public Optional<Movie> getMovieById(@PathVariable Long id) {
-        return movieService.getMovieById(id);
-    }
 
     @PutMapping("/{id}")
     public Movie updateMovie(
